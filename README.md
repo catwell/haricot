@@ -2,10 +2,14 @@
 
 Work in progress. Come back in a week or two :)
 
-## What?
+## Presentation
 
-Haricot is a [Beanstalk](http://kr.github.com/beanstalkd/) client for 
+Haricot is a [Beanstalk](http://kr.github.com/beanstalkd/) client for
 LuaJIT.
+
+## Usage
+
+See tests/test.lua.
 
 ## Copyright
 
