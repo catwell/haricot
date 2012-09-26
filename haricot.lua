@@ -15,6 +15,17 @@ local is_posint = function(x)
   return ( (type(x) == "number") and (math.floor(x) == x) and (x >= 0) )
 end
 
+local hyphen = string.byte("-")
+local valid_name = function(x)
+  local n = #x
+  return (
+    (type(x) == "string") and
+    (n > 0) and (n <= 200) and
+    (x:byte() ~= hyphen) and
+    x:match("^[%w-_+/;.$()]+$")
+  )
+end
+
 local mkcmd = function(cmd,...)
   return table.concat({cmd,...}," ") .. "\r\n"
 end
@@ -68,14 +79,27 @@ local put = function(self,pri,delay,ttr,data)
   end
 end
 
+local use = function(self,tube)
+  assert(valid_name(tube))
+  local res = call(self,"use",tube)
+  local ok = res:match("^USING ([%w-_+/;.$()]+)$")
+  ok = (ok == tube)
+  if ok then
+    return true
+  else
+    return false,res
+  end
+end
+
 -- consumer
 
 local reserve = function(self)
   local res = call(self,"reserve")
   local id,bytes = res:match("^RESERVED (%d+) (%d+)$")
   id,bytes = tonumber(id),tonumber(bytes)
-  local data = recv(self,bytes)
   if id --[[and bytes]] then
+    local data = recv(self,bytes)
+    assert(#data == bytes)
     return true,{id=id,data=data}
   else
     return false,res
@@ -92,6 +116,28 @@ local delete = function(self,id)
   end
 end
 
+local watch = function(self,tube)
+  assert(valid_name(tube))
+  local res = call(self,"watch",tube)
+  local count = tonumber(res:match("^WATCHING (%d+)$"))
+  if count then
+    return true,count
+  else
+    return false,res
+  end
+end
+
+local ignore = function(self,tube)
+  assert(valid_name(tube))
+  local res = call(self,"ignore",tube)
+  local count = tonumber(res:match("^WATCHING (%d+)$"))
+  if count then
+    return true,count
+  else
+    return false,res
+  end
+end
+
 --- class
 
 local methods = {
@@ -99,9 +145,12 @@ local methods = {
   connect = connect, -- (server,port) -> ok
   -- producer
   put = put, -- (pri,delay,ttr,data) -> ok,[id|err]
+  use = use, -- (tube) -> ok,[err]
   -- consumer
   reserve = reserve, -- () -> ok,[job|err]
   delete = delete, -- (id) -> ok,[err]
+  watch = watch, -- (tube) -> ok,[count|err]
+  ignore = ignore, -- (tube) -> ok,[count|err]
 }
 
 local new = function(server,port)
