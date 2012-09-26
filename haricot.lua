@@ -50,6 +50,23 @@ local recv = function(self,bytes)
   return r:sub(1,bytes)
 end
 
+local expect_simple = function(res,s)
+  if res:match(string.format("^%s$",s)) then
+    return true
+  else
+    return false,res
+  end
+end
+
+local expect_int = function(res,s)
+  local id = tonumber(res:match(string.format("^%s (%%d+)$",s)))
+  if id then
+    return true,id
+  else
+    return false,res
+  end
+end
+
 --- methods
 
 -- connection
@@ -71,12 +88,7 @@ local put = function(self,pri,delay,ttr,data)
   local bytes = #data
   assert(bytes < self.cfg.max_job_size)
   local res = call2(self,"put",data,pri,delay,ttr,bytes)
-  local id = tonumber(res:match("^INSERTED (%d+)$"))
-  if id then
-    return true,id
-  else
-    return false,res
-  end
+  return expect_int(res,"INSERTED")
 end
 
 local use = function(self,tube)
@@ -116,45 +128,25 @@ local reserve_with_timeout = function(self,timeout)
     assert(#data == bytes)
     return true,{id=id,data=data}
   else
-    local timed_out = res:match("^TIMED_OUT$")
-    if timed_out then
-      return true,nil
-    else
-      return false,res
-    end
+    return expect_simple(res,"TIMED_OUT")
   end
 end
 
 local delete = function(self,id)
   local res = call(self,"delete",id)
-  local ok = res:match("^DELETED$")
-  if ok then
-    return true
-  else
-    return false,res
-  end
+  return expect_simple(res,"DELETED")
 end
 
 local watch = function(self,tube)
   assert(valid_name(tube))
   local res = call(self,"watch",tube)
-  local count = tonumber(res:match("^WATCHING (%d+)$"))
-  if count then
-    return true,count
-  else
-    return false,res
-  end
+  return expect_int(res,"WATCHING")
 end
 
 local ignore = function(self,tube)
   assert(valid_name(tube))
   local res = call(self,"ignore",tube)
-  local count = tonumber(res:match("^WATCHING (%d+)$"))
-  if count then
-    return true,count
-  else
-    return false,res
-  end
+  return expect_int(res,"WATCHING")
 end
 
 --- class
