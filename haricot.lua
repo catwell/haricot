@@ -133,8 +133,34 @@ local reserve_with_timeout = function(self,timeout)
 end
 
 local delete = function(self,id)
+  assert(is_posint(id))
   local res = call(self,"delete",id)
   return expect_simple(res,"DELETED")
+end
+
+local release = function(self,id,pri,delay)
+  assert(
+    is_posint(id) and
+    is_posint(pri) and (pri < 2^32) and
+    is_posint(delay)
+  )
+  local res = call(self,"release",id,pri,delay)
+  return(expect_simple(res,"RELEASED"))
+end
+
+local bury = function(self,id,pri)
+  assert(
+    is_posint(id) and
+    is_posint(pri) and (pri < 2^32)
+  )
+  local res = call(self,"bury",id,pri)
+  return expect_simple(res,"BURIED")
+end
+
+local touch = function(self,id)
+  assert(is_posint(id))
+  local res = call(self,"touch",id)
+  return expect_simple(res,"TOUCHED")
 end
 
 local watch = function(self,tube)
@@ -161,6 +187,9 @@ local methods = {
   reserve = reserve, -- () -> ok,[job|err]
   reserve_with_timeout = reserve_with_timeout, -- () -> ok,[job|nil|err]
   delete = delete, -- (id) -> ok,[err]
+  release = release, -- (id,pri,delay) -> ok,[err]
+  bury = bury, -- (id,pri) -> ok,[err]
+  touch = touch, -- (id) -> ok,[err]
   watch = watch, -- (tube) -> ok,[count|err]
   ignore = ignore, -- (tube) -> ok,[count|err]
 }
