@@ -1,7 +1,7 @@
 PREFIX=/usr/local
 LMODNAME=haricot
 
-LUAJIT=luajit
+LUA=lua
 LMODFILE=$(LMODNAME).lua
 
 ABIVER=5.1
@@ -12,7 +12,7 @@ all:
 	@echo "This is a pure module. Nothing to make :)"
 
 test:
-	$(LUAJIT) tests/test.lua
+	$(LUA) tests/test.lua
 
 install:
 	install -m0644 $(LMODFILE) $(INSTALL_LMOD)/$(LMODFILE)
