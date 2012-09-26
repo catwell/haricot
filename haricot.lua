@@ -96,13 +96,32 @@ end
 local reserve = function(self)
   local res = call(self,"reserve")
   local id,bytes = res:match("^RESERVED (%d+) (%d+)$")
-  id,bytes = tonumber(id),tonumber(bytes)
   if id --[[and bytes]] then
+    id,bytes = tonumber(id),tonumber(bytes)
     local data = recv(self,bytes)
     assert(#data == bytes)
     return true,{id=id,data=data}
   else
     return false,res
+  end
+end
+
+local reserve_with_timeout = function(self,timeout)
+  assert(is_posint(timeout))
+  local res = call(self,"reserve-with-timeout",timeout)
+  local id,bytes = res:match("^RESERVED (%d+) (%d+)$")
+  if id --[[and bytes]] then
+    id,bytes = tonumber(id),tonumber(bytes)
+    local data = recv(self,bytes)
+    assert(#data == bytes)
+    return true,{id=id,data=data}
+  else
+    local timed_out = res:match("^TIMED_OUT$")
+    if timed_out then
+      return true,nil
+    else
+      return false,res
+    end
   end
 end
 
@@ -148,6 +167,7 @@ local methods = {
   use = use, -- (tube) -> ok,[err]
   -- consumer
   reserve = reserve, -- () -> ok,[job|err]
+  reserve_with_timeout = reserve_with_timeout, -- () -> ok,[job|nil|err]
   delete = delete, -- (id) -> ok,[err]
   watch = watch, -- (tube) -> ok,[count|err]
   ignore = ignore, -- (tube) -> ok,[count|err]
