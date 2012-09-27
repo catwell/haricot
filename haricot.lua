@@ -175,6 +175,45 @@ local ignore = function(self,tube)
   return expect_int(res,"WATCHING")
 end
 
+-- other
+
+local _peek_result = function(self,res) -- private
+  local id,bytes = res:match("^FOUND (%d+) (%d+)$")
+  if id --[[and bytes]] then
+    id,bytes = tonumber(id),tonumber(bytes)
+    local data = recv(self,bytes)
+    assert(#data == bytes)
+    return true,{id=id,data=data}
+  else
+    return expect_simple(res,"NOT_FOUND")
+  end
+end
+
+local peek = function(self,id)
+  assert(is_posint(id))
+  local res = call(self,"peek",id)
+  return _peek_result(self,res)
+end
+
+local make_peek = function(state)
+  return function(self)
+    local res = call(self,string.format("peek-%s",state))
+    return _peek_result(self,res)
+  end
+end
+
+local kick = function(self,bound)
+  assert(is_posint(bound))
+  local res = call(self,"kick",bound)
+  return expect_int(res,"KICKED")
+end
+
+local kick_job = function(self,id)
+  assert(is_posint(id))
+  local res = call(self,"kick-job",id)
+  return expect_simple(res,"KICKED")
+end
+
 --- class
 
 local methods = {
@@ -192,6 +231,13 @@ local methods = {
   touch = touch, -- (id) -> ok,[err]
   watch = watch, -- (tube) -> ok,[count|err]
   ignore = ignore, -- (tube) -> ok,[count|err]
+  -- other
+  peek = peek, -- (id) -> ok,[job|nil|err]
+  peek_ready = make_peek("ready"), -- () -> ok,[job|nil|err]
+  peek_delayed = make_peek("delayed"), -- () -> ok,[job|nil|err]
+  peek_buried = make_peek("buried"), -- () -> ok,[job|nil|err]
+  kick = kick, -- (bound) -> ok,[count|err]
+  kick_job = kick_job, -- (id) -> ok,[err]
 }
 
 local new = function(server,port)
