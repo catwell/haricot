@@ -26,28 +26,25 @@ local valid_name = function(x)
   )
 end
 
+local getline = function(self)
+  return self.cnx:receive("*l") or "NOT_CONNECTED"
+end
+
 local mkcmd = function(cmd,...)
   return table.concat({cmd,...}," ") .. "\r\n"
 end
 
-local mkcmd2 = function(cmd,data,...)
-  return mkcmd(cmd,...) .. data .. "\r\n"
-end
-
 local call = function(self,cmd,...)
   self.cnx:send(mkcmd(cmd,...))
-  return self.cnx:receive("*l")
-end
-
-local call2 = function(self,cmd,data,...)
-  self.cnx:send(mkcmd2(cmd,data,...))
-  return self.cnx:receive("*l")
+  return getline(self)
 end
 
 local recv = function(self,bytes)
   assert(is_posint(bytes))
   local r = self.cnx:receive(bytes+2)
-  return r:sub(1,bytes)
+  if r then
+    return r:sub(1,bytes)
+  else return nil end
 end
 
 local expect_simple = function(res,s)
@@ -64,6 +61,16 @@ local expect_int = function(res,s)
     return true,id
   else
     return false,res
+  end
+end
+
+local expect_job_body = function(self,bytes,id)
+  local data = recv(self,bytes)
+  if data then
+    assert(#data == bytes)
+    return true,{id=id,data=data}
+  else
+    return false,"NOT_CONNECTED"
   end
 end
 
@@ -87,7 +94,9 @@ local put = function(self,pri,delay,ttr,data)
   )
   local bytes = #data
   assert(bytes < self.cfg.max_job_size)
-  local res = call2(self,"put",data,pri,delay,ttr,bytes)
+  local cmd = mkcmd("put",pri,delay,ttr,bytes) .. data .. "\r\n"
+  self.cnx:send(cmd)
+  local res = getline(self)
   return expect_int(res,"INSERTED")
 end
 
@@ -110,9 +119,7 @@ local reserve = function(self)
   local id,bytes = res:match("^RESERVED (%d+) (%d+)$")
   if id --[[and bytes]] then
     id,bytes = tonumber(id),tonumber(bytes)
-    local data = recv(self,bytes)
-    assert(#data == bytes)
-    return true,{id=id,data=data}
+    return expect_job_body(self,bytes,id)
   else
     return false,res
   end
@@ -124,9 +131,7 @@ local reserve_with_timeout = function(self,timeout)
   local id,bytes = res:match("^RESERVED (%d+) (%d+)$")
   if id --[[and bytes]] then
     id,bytes = tonumber(id),tonumber(bytes)
-    local data = recv(self,bytes)
-    assert(#data == bytes)
-    return true,{id=id,data=data}
+    return expect_job_body(self,bytes,id)
   else
     return expect_simple(res,"TIMED_OUT")
   end
@@ -181,9 +186,7 @@ local _peek_result = function(self,res) -- private
   local id,bytes = res:match("^FOUND (%d+) (%d+)$")
   if id --[[and bytes]] then
     id,bytes = tonumber(id),tonumber(bytes)
-    local data = recv(self,bytes)
-    assert(#data == bytes)
-    return true,{id=id,data=data}
+    return expect_job_body(self,bytes,id)
   else
     return expect_simple(res,"NOT_FOUND")
   end
