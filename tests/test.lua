@@ -11,6 +11,8 @@ local sleep = function(s)
   socket.select(nil,nil,s)
 end
 
+require "yaml"
+
 local ok,res,id,job,t0
 local tube1 = "$haricot$-test1"
 
@@ -84,6 +86,16 @@ ok,res = bs:reserve(0)
 assert((not ok) and (res == "DEADLINE_SOON")); printf(".")
 ok = bs:touch(id); assert(ok); printf(".")
 ok,res = bs:reserve_with_timeout(0); assert(ok and (res == nil)); printf(".")
+ok = bs:delete(id); assert(ok); printf(".")
+-- pausing
+ok,id = bs:put(0,0,2,"hello"); assert(ok); printf(".")
+ok = bs:pause_tube(tube1,2); assert(true)
+ok,res = bs:reserve_with_timeout(0); assert(ok and (res == nil)); printf(".")
+sleep(1.5)
+ok,res = bs:reserve_with_timeout(0); assert(ok and (res == nil)); printf(".")
+sleep(1)
+ok,job = bs:reserve_with_timeout(0); assert(ok)
+assert((job.id == id) and (job.data == "hello")); printf(".")
 ok = bs:delete(id); assert(ok); printf(".")
 print(" OK")
 
@@ -166,5 +178,30 @@ assert((job.id == id) and (job.data == "hello")); printf(".")
 ok = bs:delete(id); assert(ok); printf(".")
 print(" OK")
 
+printf("stats ")
+ok,id = bs:put(0,0,60,"hello"); assert(ok); printf(".")
+ok,job = bs:peek_ready(); assert(ok)
+assert((job.id == id) and (job.data == "hello")); printf(".")
+ok,res = bs:stats_job(id); assert(ok and res)
+res = yaml.load(res)
+assert(res and (res.id == id) and (res.tube == tube1)); printf(".")
+ok,res = bs:stats_tube(tube1); assert(ok and res)
+res = yaml.load(res)
+assert(res and (res["current-jobs-ready"] == 1)); printf(".")
+ok,res = bs:stats(); assert(ok and res)
+res = yaml.load(res)
+assert(res and (res["current-jobs-ready"] == 1)); printf(".")
+ok = bs:delete(id); assert(ok); printf(".")
+ok,res = bs:list_tube_used()
+assert(ok and res and (res == tube1)); printf(".")
+ok,res = bs:list_tubes_watched(); assert(ok and res)
+res = yaml.load(res)
+assert(res and (#res == 1) and (res[1] == tube1)); printf(".")
+ok,res = bs:list_tubes(); assert(ok and res)
+res = yaml.load(res); assert((type(res) == "table")); printf(".")
+print(" OK")
+
 -- wrap up
 ok,res = bs:reserve_with_timeout(0); assert(ok and (res == nil))
+ok = bs:quit(); assert(ok)
+ok,res = bs:reserve(); assert((not ok) and (res == "NOT_CONNECTED"))

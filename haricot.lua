@@ -64,6 +64,21 @@ local expect_int = function(res,s)
   end
 end
 
+local expect_data = function(self,res)
+  local bytes = tonumber(res:match("^OK (%d+)$"))
+  if bytes then
+    local data = recv(self,bytes)
+    if data then
+      assert(#data == bytes)
+      return true,data
+    else
+      return false,"NOT_CONNECTED"
+    end
+  else
+    return false,res
+  end
+end
+
 local expect_job_body = function(self,bytes,id)
   local data = recv(self,bytes)
   if data then
@@ -217,6 +232,54 @@ local kick_job = function(self,id)
   return expect_simple(res,"KICKED")
 end
 
+local stats_job = function(self,id)
+  assert(is_posint(id))
+  local res = call(self,"stats-job",id)
+  return expect_data(self,res)
+end
+
+local stats_tube = function(self,tube)
+  assert(valid_name(tube))
+  local res = call(self,"stats-tube",tube)
+  return expect_data(self,res)
+end
+
+local stats = function(self)
+  local res = call(self,"stats")
+  return expect_data(self,res)
+end
+
+local list_tubes = function(self)
+  local res = call(self,"list-tubes")
+  return expect_data(self,res)
+end
+
+local list_tube_used = function(self)
+  local res = call(self,"list-tube-used")
+  local tube = res:match("^USING ([%w-_+/;.$()]+)$")
+  if tube then
+    return true,tube
+  else
+    return false,res
+  end
+end
+
+local list_tubes_watched = function(self)
+  local res = call(self,"list-tubes-watched")
+  return expect_data(self,res)
+end
+
+local quit = function(self)
+  self.cnx:send(mkcmd("quit"))
+  return true
+end
+
+local pause_tube = function(self,tube,delay)
+  assert(valid_name(tube) and is_posint(delay))
+  local res = call(self,"pause-tube",tube,delay)
+  return expect_simple(res,"PAUSED")
+end
+
 --- class
 
 local methods = {
@@ -241,6 +304,14 @@ local methods = {
   peek_buried = make_peek("buried"), -- () -> ok,[job|nil|err]
   kick = kick, -- (bound) -> ok,[count|err]
   kick_job = kick_job, -- (id) -> ok,[err]
+  stats_job = stats_job, -- (id) -> ok,[yaml|err]
+  stats_tube = stats_tube, -- (tube) -> ok,[yaml|err]
+  stats = stats, -- () -> ok,[yaml|err]
+  list_tubes = list_tubes, -- () -> ok,[yaml|err]
+  list_tube_used = list_tube_used, -- () -> ok,[tube|err]
+  list_tubes_watched = list_tubes_watched, -- () -> ok,[tube|err]
+  quit = quit, -- () -> ok
+  pause_tube = pause_tube, -- (tube,delay) -> ok,[err]
 }
 
 local new = function(server,port)
