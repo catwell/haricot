@@ -39,7 +39,7 @@ bs:delete(id)
 
 ### More
 
-See tests/test.lua.
+See haricot.test.lua.
 
 ## Copyright
 

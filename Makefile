@@ -12,7 +12,7 @@ all:
 	@echo "This is a pure module. Nothing to make :)"
 
 test:
-	$(LUA) tests/test.lua
+	$(LUA) $(LMODNAME).test.lua
 
 install:
 	install -m0644 $(LMODFILE) $(INSTALL_LMOD)/$(LMODFILE)
