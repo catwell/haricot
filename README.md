@@ -16,6 +16,11 @@ Haricot does not decode the YAML data returned by the following methods:
 
 It returns raw YAML. Use your own decoding library if needed.
 
+## Dependencies
+
+Haricot only depends on LuaSocket. Tests require cwtest, yaml and a running
+beanstalkd instance.
+
 ## Usage
 
 ### Creating a job
