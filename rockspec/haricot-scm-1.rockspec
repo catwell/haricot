@@ -27,4 +27,5 @@ build = {
          haricot = "haricot.lua",
       },
    },
+   copy_directories = {},
 }
