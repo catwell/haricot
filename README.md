@@ -52,4 +52,4 @@ See haricot.test.lua.
 
 ## Copyright
 
-Copyright (c) 2012 Moodstocks SAS
+Copyright (c) 2012-2013 Moodstocks SAS
