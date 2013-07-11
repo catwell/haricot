@@ -4,13 +4,22 @@ local socket = require "socket"
 local gettime = socket.gettime
 local sleep = function(s) socket.select(nil,nil,s) end
 local pk = function(...) return {...} end
-require "yaml"
 
 local ok,res,id,job,t0
 local tube1 = "$haricot$-test1"
 
+--- Find a YAML parser
+local yaml
+ok,yaml = pcall(require,"lyaml")
+if not ok then ok,yaml = pcall(require,"yaml") end
+assert(
+  ok and (type(yaml) == "table") and (type(yaml.load) == "function"),
+  "no yaml parser found :("
+)
+
 local T = cwtest.new()
 local bs = haricot.new("localhost",11300)
+
 T:start("basic"); do
   T:yes(bs)
   T:eq( pk(bs:watch(tube1)), {true,2} )
