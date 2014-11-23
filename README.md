@@ -22,7 +22,7 @@ Haricot only depends on LuaSocket.
 
 Tests require [cwtest](https://github.com/catwell/cwtest),
 a YAML parser such as [lyaml](https://github.com/gvvaughan/lyaml) or
-[lua-yaml](https://github.com/craigbarnes/lua-yaml)
+[the one from lubyk](http://doc.lubyk.org/yaml.html)
 and a running beanstalkd instance.
 
 ## Usage
