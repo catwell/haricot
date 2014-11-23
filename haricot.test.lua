@@ -12,10 +12,12 @@ local tube1 = "$haricot$-test1"
 local yaml
 ok, yaml = pcall(require, "lyaml")
 if not ok then ok, yaml = pcall(require, "yaml") end
-assert(
-  ok and (type(yaml) == "table") and (type(yaml.load) == "function"),
-  "no yaml parser found :("
-)
+if not (
+  ok and (type(yaml) == "table") and (type(yaml.load) == "function")
+) then
+  yaml = nil
+  print("warning: no YAML parser found, stats tests will be skipped")
+end
 
 local T = cwtest.new()
 local bs = haricot.new("localhost", 11300)
@@ -155,7 +157,7 @@ T:start("burying and kicking"); do
   T:yes( bs:delete(id) )
 end; T:done()
 
-T:start("stats"); do
+if yaml then T:start("stats"); do
   ok, id = bs:put(0, 0, 60, "hello"); T:yes(ok)
   T:eq( pk(bs:peek_ready()), {true, {id = id, data = "hello"}} )
   ok, res = bs:stats_job(id); T:yes(ok and res)
@@ -174,7 +176,7 @@ T:start("stats"); do
   T:eq( res, {tube1} )
   ok, res = bs:list_tubes(); T:yes(ok and res)
   res = yaml.load(res); T:eq( type(res), "table" )
-end; T:done()
+end; T:done(); end
 
 -- wrap up
 ok, res = bs:reserve_with_timeout(0); assert(ok and (res == nil))
