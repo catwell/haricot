@@ -1,0 +1,34 @@
+language: c
+
+env:
+  global:
+    - LUAROCKS=2.2.0
+  matrix:
+    - LUA=lua5.1
+    - LUA=lua5.2
+    - LUA=lua5.3
+    - LUA=luajit
+
+branches:
+  only:
+    - master
+
+install:
+  - bash .travis/setup_lua.sh
+  - sudo luarocks install luasocket
+  - sudo luarocks install penlight
+  - sudo luarocks install cwtest
+  - sudo luarocks install lyaml
+  - sudo apt-get install beanstalkd
+
+before_script:
+  - beanstalkd &
+  - sleep 1
+
+script:
+  - lua haricot.test.lua
+
+notifications:
+  email:
+    on_success: change
+    on_failure: always
