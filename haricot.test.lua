@@ -73,8 +73,13 @@ T:start("timeouts"); do
   T:eq( pk(bs:reserve()), {true, {id = id, data = "hello"}} )
   sleep(1.5)
   T:eq( pk(bs:reserve()), {false, "DEADLINE_SOON"} )
-  sleep(1)
-  T:eq( pk(bs:reserve()), {true, {id = id, data = "hello"}} )
+  local r
+  for i=1,5 do
+    sleep(1)
+    r = pk(bs:reserve())
+    if r[1] then break end
+  end
+  T:eq( r, {true, {id = id, data = "hello"}} )
   T:yes( bs:delete(id) )
   -- touching
   ok, id = bs:put(0, 0, 2, "hello"); T:yes(ok)
