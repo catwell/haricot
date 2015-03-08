@@ -187,3 +187,5 @@ end; T:done(); end
 ok, res = bs:reserve_with_timeout(0); assert(ok and (res == nil))
 ok = bs:quit(); assert(ok)
 ok, res = bs:reserve(); assert((not ok) and (res == "NOT_CONNECTED"))
+
+T:exit()
