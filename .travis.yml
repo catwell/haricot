@@ -1,5 +1,7 @@
 language: c
 
+sudo: false
+
 env:
   global:
     - LUAROCKS=2.2.0
@@ -13,13 +15,15 @@ branches:
   only:
     - master
 
+before_install:
+  - source .travis/setenv_lua.sh
+
 install:
-  - bash .travis/setup_lua.sh
-  - sudo luarocks install luasocket
-  - sudo luarocks install penlight
-  - sudo luarocks install cwtest
-  - sudo luarocks install lyaml
-  - sudo apt-get install beanstalkd
+  - bash .travis/setup_beanstalkd.sh
+  - luarocks install luasocket
+  - luarocks install penlight
+  - luarocks install cwtest
+  - luarocks install lyaml
 
 before_script:
   - beanstalkd &
