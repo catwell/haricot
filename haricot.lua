@@ -94,9 +94,21 @@ end
 -- connection
 
 local connect = function(self, server, port)
+  if self.cnx ~= nil then self:disconnect() end
   self.cnx = socket.tcp()
-  self.cnx:connect(server, port)
+  local co, err = self.cnx:connect(server,port)
+  if co == nil then return false, err end
   return true
+end
+
+local disconnect = function(self)
+  if self.cnx ~= nil then
+    self:quit()
+    self.cnx:close()
+    self.cnx = nil
+    return true
+  end
+  return false, "NOT_CONNECTED"
 end
 
 -- producer
@@ -284,7 +296,9 @@ end
 
 local methods = {
   -- connection
-  connect = connect, -- (server,port) -> ok
+  connect = connect, -- (server,port) -> ok,[err]
+  disconnect = disconnect, -- () -> ok,[err]
+
   -- producer
   put = put, -- (pri,delay,ttr,data) -> ok,[id|err]
   use = use, -- (tube) -> ok,[err]
@@ -323,3 +337,6 @@ end
 return {
   new = new,
 }
+
+-- vim: set tabstop=2 softtabstop=2 shiftwidth=2 expandtab : --
+
