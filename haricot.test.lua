@@ -4,6 +4,9 @@ local socket = require "socket"
 local gettime = socket.gettime
 local sleep = function(s) socket.select(nil, nil, s) end
 local pk = function(...) return {...} end
+local fmt = string.format
+
+local HOST, PORT = "localhost", 11300
 
 local ok, res, id, job, t0
 local tube1 = "$haricot$-test1"
@@ -20,7 +23,7 @@ if not (
 end
 
 local T = cwtest.new()
-local bs = haricot.new("localhost", 11300)
+local bs = haricot.new(HOST, PORT)
 
 T:start("basic"); do
   T:yes(bs)
@@ -28,7 +31,7 @@ T:start("basic"); do
   T:eq( pk(bs:ignore("default")), {true, 1} )
   while true do -- empty tube
     ok, res = bs:reserve_with_timeout(0)
-    assert(ok, "Do you have beanstalkd running locally on port 11300?")
+    assert(ok, fmt("Do you have beanstalkd running on %s:%d?", HOST, PORT))
     if res ~= nil then
       assert(type(res.id) == "number")
       ok = bs:delete(res.id)
@@ -187,5 +190,26 @@ end; T:done(); end
 ok, res = bs:reserve_with_timeout(0); assert(ok and (res == nil))
 ok = bs:quit(); assert(ok)
 ok, res = bs:reserve(); assert((not ok) and (res == "NOT_CONNECTED"))
+
+T:start("disconnect"); do
+  T:yes( bs:disconnect() )
+  T:eq( pk(bs:disconnect()), {false, "NOT_CONNECTED"} )
+  T:eq( pk(bs:put(0, 0, 60, "hello")), {false, "NOT_CONNECTED"} )
+  T:yes( bs:connect(HOST, PORT) )
+  if yaml then
+    T:eq( pk(bs:list_tube_used()), {true, "default"} )
+    ok, res = bs:list_tubes_watched(); T:yes(ok and res)
+    res = yaml.load(res)
+    T:eq( res, {"default"} )
+  end
+  T:yes( bs:use(tube1) )
+  ok, id = bs:put(0, 0, 60, "hello"); T:yes(ok)
+  T:yes( bs:disconnect() )
+  T:yes( bs:connect(HOST, PORT) )
+  T:eq( pk(bs:watch(tube1)), {true, 2} )
+  T:eq( pk(bs:reserve()), {true, {id = id, data = "hello"}} )
+  T:yes( bs:delete(id) )
+  T:yes( bs:disconnect() )
+end; T:done()
 
 T:exit()
