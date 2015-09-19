@@ -27,7 +27,7 @@ local valid_name = function(x)
 end
 
 local getline = function(self)
-  return self.cnx:receive("*l") or "NOT_CONNECTED"
+  return (self.cnx and self.cnx:receive("*l")) or "NOT_CONNECTED"
 end
 
 local mkcmd = function(cmd, ...)
@@ -35,11 +35,13 @@ local mkcmd = function(cmd, ...)
 end
 
 local call = function(self, cmd, ...)
+  if not self.cnx then return "NOT_CONNECTED" end
   self.cnx:send(mkcmd(cmd, ...))
   return getline(self)
 end
 
 local recv = function(self, bytes)
+  if not self.cnx then return nil end
   assert(is_posint(bytes))
   local r = self.cnx:receive(bytes+2)
   if r then
@@ -114,6 +116,7 @@ end
 -- producer
 
 local put = function(self, pri, delay, ttr, data)
+  if not self.cnx then return false, "NOT_CONNECTED" end
   assert(
     is_posint(pri) and (pri < 2^32) and
     is_posint(delay) and
@@ -282,6 +285,7 @@ local list_tubes_watched = function(self)
 end
 
 local quit = function(self)
+  if not self.cnx then return false, "NOT_CONNECTED" end
   self.cnx:send(mkcmd("quit"))
   return true
 end
