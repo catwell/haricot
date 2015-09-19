@@ -330,13 +330,12 @@ local methods = {
 
 local new = function(server, port)
   local r = {cfg = default_cfg()}
-  connect(r, server, port)
-  return setmetatable(r, {__index = methods})
+  local ok, err = connect(r, server, port)
+  return setmetatable(r, {__index = methods}), ok, err
 end
 
 return {
-  new = new,
+  new = new, -- instance,conn_ok,[err]
 }
 
 -- vim: set tabstop=2 softtabstop=2 shiftwidth=2 expandtab : --
-
