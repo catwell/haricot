@@ -23,9 +23,16 @@ if not (
 end
 
 local T = cwtest.new()
-local bs = haricot.new(HOST, PORT)
 
-T:start("basic"); do
+local mods, modname = {"luasocket", "lsocket"}
+
+for i=1,#mods do
+
+modname = mods[i]
+local bs = haricot.new(HOST, PORT, haricot.mod[modname])
+local _n = function(s) return fmt("%s (%s)", s, modname) end
+
+T:start(_n("basic")); do
   T:yes(bs)
   T:eq( pk(bs:watch(tube1)), {true, 2} )
   T:eq( pk(bs:ignore("default")), {true, 1} )
@@ -53,7 +60,7 @@ T:start("basic"); do
   T:yes( bs:delete(id) )
 end; T:done()
 
-T:start("timeouts"); do
+T:start(_n("timeouts")); do
   -- reserve with timeout
   t0 = gettime()
   T:eq( pk(bs:reserve_with_timeout(3)), {true, nil} )
@@ -103,7 +110,7 @@ T:start("timeouts"); do
   T:yes( bs:delete(id) )
 end; T:done()
 
-T:start("priorities"); do
+T:start(_n("priorities")); do
   local id1, id2, job1, job2
   -- one way
   ok, id1 = bs:put(5, 0, 60, "first"); T:yes(ok)
@@ -137,7 +144,7 @@ T:start("priorities"); do
   T:yes( bs:delete(id2) )
 end;T:done()
 
-T:start("releasing"); do
+T:start(_n("releasing")); do
   ok, id = bs:put(0, 0, 60, "hello"); T:yes(ok)
   T:eq( pk(bs:reserve()), {true, {id = id, data = "hello"}} )
   T:eq( pk(bs:reserve_with_timeout(0)), {true, nil} )
@@ -146,7 +153,7 @@ T:start("releasing"); do
   T:yes( bs:delete(id) )
 end; T:done()
 
-T:start("burying and kicking"); do
+T:start(_n("burying and kicking")); do
   ok, id = bs:put(0, 0, 60, "hello"); T:yes(ok)
   T:eq( pk(bs:peek_ready()), {true, {id = id, data = "hello"}} )
   T:eq( pk(bs:peek_buried()), {true, nil} )
@@ -165,7 +172,7 @@ T:start("burying and kicking"); do
   T:yes( bs:delete(id) )
 end; T:done()
 
-if yaml then T:start("stats"); do
+if yaml then T:start(_n("stats")); do
   ok, id = bs:put(0, 0, 60, "hello"); T:yes(ok)
   T:eq( pk(bs:peek_ready()), {true, {id = id, data = "hello"}} )
   ok, res = bs:stats_job(id); T:yes(ok and res)
@@ -191,7 +198,7 @@ ok, res = bs:reserve_with_timeout(0); assert(ok and (res == nil))
 ok = bs:quit(); assert(ok)
 ok, res = bs:reserve(); assert((not ok) and (res == "NOT_CONNECTED"))
 
-T:start("disconnect"); do
+T:start(_n("disconnect")); do
   T:yes( bs:disconnect() )
   T:eq( pk(bs:disconnect()), {false, "NOT_CONNECTED"} )
   T:eq( pk(bs:put(0, 0, 60, "hello")), {false, "NOT_CONNECTED"} )
@@ -211,5 +218,7 @@ T:start("disconnect"); do
   T:yes( bs:delete(id) )
   T:yes( bs:disconnect() )
 end; T:done()
+
+end -- mods
 
 T:exit()

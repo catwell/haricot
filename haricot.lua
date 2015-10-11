@@ -1,9 +1,3 @@
-local lsocket = nil
-local ok, socket = pcall(require, "socket")
-if not ok then
-  lsocket = require "lsocket"
-end
-
 -- NOTES:
 -- `job` format: {id=...,data=...}
 
@@ -30,56 +24,106 @@ local valid_name = function(x)
   )
 end
 
-local ll_recv = function(self, bytes)
-  assert(is_posint(bytes))
-  if lsocket then
-    local c, r = bytes, {}
-    while c > 0 do
-      local rsock = lsocket.select({self.cnx})
-      assert(rsock[1] == self.cnx)
-      local t = self.cnx:recv(c)
-      if not t then return nil end
-      r[#r+1] = t
-      c = c - #t
-    end
-    return table.concat(r)
-  else
-    return self.cnx:receive(bytes)
+local luasocket_send = function(s, buf)
+  return s:send(buf)
+end
+
+local luasocket_recv = function(s, bytes)
+  return s:receive(bytes)
+end
+
+local luasocket_getline = function(s)
+  return s:receive("*l")
+end
+
+local luasocket_connect = function(server, port)
+  local s = (require "socket").tcp()
+  local ok, err = s:connect(server, port)
+  if ok then return s else return nil, err end
+end
+
+local luasocket_close = function(s)
+  s:close()
+end
+
+local luasocket_t = {
+  send = luasocket_send,
+  recv = luasocket_recv,
+  getline = luasocket_getline,
+  connect = luasocket_connect,
+  close = luasocket_close,
+}
+
+local lsocket_send = function(s, buf)
+  local c = #buf
+  while c > 0 do
+    local _, wsock = s.lsocket.select(nil, {s.s})
+    assert(wsock[1] == s.s)
+    local sent, err = s.s:send(buf)
+    if not sent then return nil, err end
+    c = c - sent
   end
 end
 
-local ll_send = function(self, buf)
-  if lsocket then
-    local c = #buf
-    while c > 0 do
-      local _, wsock = lsocket.select(nil, {self.cnx})
-      assert(wsock[1] == self.cnx)
-      local sent, err = self.cnx:send(buf)
-      if not sent then return nil, err end
-      c = c - sent
-    end
-  else
-    return self.cnx:send(buf)
+local lsocket_recv = function(s, bytes)
+  local c, r = bytes, {}
+  while c > 0 do
+    local rsock = s.lsocket.select({s.s})
+    assert(rsock[1] == s.s)
+    local t = s.s:recv(c)
+    if not t then return nil end
+    r[#r+1] = t
+    c = c - #t
   end
+  return table.concat(r)
+end
+
+local lsocket_getline = function(s)
+  local r = {}
+  while true do
+    local c = lsocket_recv(s, 1)
+    if not c then return nil end
+    if c == '\n' then return table.concat(r) end
+    if c ~= '\r' then r[#r+1] = c end
+  end
+end
+
+local lsocket_connect = function(server, port)
+  local r = {lsocket = (require "lsocket")}
+  local s, err = r.lsocket.connect("tcp", server, port)
+  if not s then return nil, err end
+  local _, wsock = r.lsocket.select(nil, {s})
+  assert(wsock[1] == s)
+  r.s = s
+  s, err = r.s:status()
+  if not s then return nil, err end
+  return r
+end
+
+local lsocket_close = function(s)
+  s.s:close()
+end
+
+local lsocket_t = {
+  send = lsocket_send,
+  recv = lsocket_recv,
+  getline = lsocket_getline,
+  connect = lsocket_connect,
+  close = lsocket_close,
+}
+
+local ll_recv = function(self, bytes)
+  assert(is_posint(bytes))
+  return self.mod.recv(self.cnx, bytes)
+end
+
+local ll_send = function(self, buf)
+  return self.mod.send(self.cnx, buf)
 end
 
 local getline = function(self)
   if not self.cnx then return "NOT_CONNECTED" end
-  if lsocket then
-    local r = {}
-    while true do
-      local c = ll_recv(self, 1)
-      if not c then
-        return "NOT_CONNECTED"
-      elseif c == '\n' then
-        return table.concat(r)
-      elseif c ~= '\r' then
-        r[#r+1] = c
-      end
-    end
-  else
-    return self.cnx:receive("*l") or "NOT_CONNECTED"
-  end
+  return self.mod.getline(self.cnx) or "NOT_CONNECTED"
 end
 
 local mkcmd = function(cmd, ...)
@@ -148,27 +192,16 @@ end
 
 local connect = function(self, server, port)
   if self.cnx ~= nil then self:disconnect() end
-  local co, err
-  if lsocket then
-    co, err = lsocket.connect("tcp", server, port)
-    if co then
-      local _, wsock = lsocket.select(nil, {co})
-      assert(wsock[1] == co)
-      assert(co:status())
-      self.cnx = co
-    end
-  else
-    self.cnx = socket.tcp()
-    co, err = self.cnx:connect(server, port)
-  end
-  if co == nil then return false, err end
+  local mod, err
+  self.cnx, err = self.mod.connect(server, port)
+  if not self.cnx then return false, err end
   return true
 end
 
 local disconnect = function(self)
   if self.cnx ~= nil then
     self:quit()
-    self.cnx:close()
+    self.mod.close(self.cnx)
     self.cnx = nil
     return true
   end
@@ -394,14 +427,27 @@ local methods = {
   pause_tube = pause_tube, -- (tube,delay) -> ok,[err]
 }
 
-local new = function(server, port)
-  local r = {cfg = default_cfg()}
+local new = function(server, port, mod)
+  if not mod then
+    if pcall(require, "luasocket") then
+      mod = luasocket_t
+    elseif pcall(require, "lsocket") then
+      mod = lsocket_t
+    else
+      error("could not find luasocket or lsocket")
+    end
+  end
+  local r = {mod = mod, cfg = default_cfg()}
   local ok, err = connect(r, server, port)
   return setmetatable(r, {__index = methods}), ok, err
 end
 
 return {
   new = new, -- instance,conn_ok,[err]
+  mod = {
+    luasocket = luasocket_t,
+    lsocket = lsocket_t,
+  },
 }
 
 -- vim: set tabstop=2 softtabstop=2 shiftwidth=2 expandtab : --

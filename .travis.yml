@@ -21,6 +21,7 @@ before_install:
 install:
   - bash .travis/setup_beanstalkd.sh
   - luarocks install luasocket
+  - luarocks install lsocket
   - luarocks install penlight
   - luarocks install cwtest
   - luarocks install lyaml
