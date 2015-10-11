@@ -1,4 +1,8 @@
-local socket = require "socket"
+local lsocket = nil
+local ok, socket = pcall(require, "socket")
+if not ok then
+  lsocket = require "lsocket"
+end
 
 -- NOTES:
 -- `job` format: {id=...,data=...}
@@ -26,8 +30,56 @@ local valid_name = function(x)
   )
 end
 
+local ll_recv = function(self, bytes)
+  assert(is_posint(bytes))
+  if lsocket then
+    local c, r = bytes, {}
+    while c > 0 do
+      local rsock = lsocket.select({self.cnx})
+      assert(rsock[1] == self.cnx)
+      local t = self.cnx:recv(c)
+      if not t then return nil end
+      r[#r+1] = t
+      c = c - #t
+    end
+    return table.concat(r)
+  else
+    return self.cnx:receive(bytes)
+  end
+end
+
+local ll_send = function(self, buf)
+  if lsocket then
+    local c = #buf
+    while c > 0 do
+      local _, wsock = lsocket.select(nil, {self.cnx})
+      assert(wsock[1] == self.cnx)
+      local sent, err = self.cnx:send(buf)
+      if not sent then return nil, err end
+      c = c - sent
+    end
+  else
+    return self.cnx:send(buf)
+  end
+end
+
 local getline = function(self)
-  return (self.cnx and self.cnx:receive("*l")) or "NOT_CONNECTED"
+  if not self.cnx then return "NOT_CONNECTED" end
+  if lsocket then
+    local r = {}
+    while true do
+      local c = ll_recv(self, 1)
+      if not c then
+        return "NOT_CONNECTED"
+      elseif c == '\n' then
+        return table.concat(r)
+      elseif c ~= '\r' then
+        r[#r+1] = c
+      end
+    end
+  else
+    return self.cnx:receive("*l") or "NOT_CONNECTED"
+  end
 end
 
 local mkcmd = function(cmd, ...)
@@ -36,14 +88,13 @@ end
 
 local call = function(self, cmd, ...)
   if not self.cnx then return "NOT_CONNECTED" end
-  self.cnx:send(mkcmd(cmd, ...))
+  ll_send(self, mkcmd(cmd, ...))
   return getline(self)
 end
 
 local recv = function(self, bytes)
   if not self.cnx then return nil end
-  assert(is_posint(bytes))
-  local r = self.cnx:receive(bytes+2)
+  local r = ll_recv(self, bytes + 2)
   if r then
     return r:sub(1, bytes)
   else return nil end
@@ -97,8 +148,19 @@ end
 
 local connect = function(self, server, port)
   if self.cnx ~= nil then self:disconnect() end
-  self.cnx = socket.tcp()
-  local co, err = self.cnx:connect(server,port)
+  local co, err
+  if lsocket then
+    co, err = lsocket.connect("tcp", server, port)
+    if co then
+      local _, wsock = lsocket.select(nil, {co})
+      assert(wsock[1] == co)
+      assert(co:status())
+      self.cnx = co
+    end
+  else
+    self.cnx = socket.tcp()
+    co, err = self.cnx:connect(server, port)
+  end
   if co == nil then return false, err end
   return true
 end
@@ -125,7 +187,7 @@ local put = function(self, pri, delay, ttr, data)
   local bytes = #data
   assert(bytes < self.cfg.max_job_size)
   local cmd = mkcmd("put", pri, delay, ttr, bytes) .. data .. "\r\n"
-  self.cnx:send(cmd)
+  ll_send(self, cmd)
   local res = getline(self)
   return expect_int(res, "INSERTED")
 end
@@ -286,7 +348,7 @@ end
 
 local quit = function(self)
   if not self.cnx then return false, "NOT_CONNECTED" end
-  self.cnx:send(mkcmd("quit"))
+  ll_send(self, mkcmd("quit"))
   return true
 end
 

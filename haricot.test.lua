@@ -6,7 +6,7 @@ local sleep = function(s) socket.select(nil, nil, s) end
 local pk = function(...) return {...} end
 local fmt = string.format
 
-local HOST, PORT = "localhost", 11300
+local HOST, PORT = "127.0.0.1", 11300
 
 local ok, res, id, job, t0
 local tube1 = "$haricot$-test1"
