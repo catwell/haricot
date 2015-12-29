@@ -429,7 +429,7 @@ local methods = {
 
 local new = function(server, port, mod)
   if not mod then
-    if pcall(require, "luasocket") then
+    if pcall(require, "socket") then
       mod = luasocket_t
     elseif pcall(require, "lsocket") then
       mod = lsocket_t
