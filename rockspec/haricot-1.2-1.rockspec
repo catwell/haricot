@@ -1,8 +1,9 @@
 package = "haricot"
-version = "scm-1"
+version = "1.2-1"
 
 source = {
    url = "git://github.com/catwell/haricot.git",
+   branch = "v1.2",
 }
 
 description = {
