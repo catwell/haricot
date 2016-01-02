@@ -8,7 +8,7 @@ local fmt = string.format
 
 local HOST, PORT = "127.0.0.1", 11300
 
-local ok, res, id, job, t0
+local ok, res, id, t0
 local tube1 = "$haricot$-test1"
 
 --- Find a YAML parser
@@ -84,7 +84,7 @@ T:start(_n("timeouts")); do
   sleep(1.5)
   T:eq( pk(bs:reserve()), {false, "DEADLINE_SOON"} )
   local r
-  for i=1,5 do
+  for _=1,5 do
     sleep(1)
     r = pk(bs:reserve())
     if r[1] then break end
@@ -111,7 +111,7 @@ T:start(_n("timeouts")); do
 end; T:done()
 
 T:start(_n("priorities")); do
-  local id1, id2, job1, job2
+  local id1, id2
   -- one way
   ok, id1 = bs:put(5, 0, 60, "first"); T:yes(ok)
   ok, id2 = bs:put(10, 0, 60, "second"); T:yes(ok)

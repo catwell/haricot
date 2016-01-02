@@ -192,7 +192,7 @@ end
 
 local connect = function(self, server, port)
   if self.cnx ~= nil then self:disconnect() end
-  local mod, err
+  local err
   self.cnx, err = self.mod.connect(server, port)
   if not self.cnx then return false, err end
   return true

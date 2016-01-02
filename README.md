@@ -55,4 +55,4 @@ See haricot.test.lua.
 ## Copyright
 
 - Copyright (c) 2012-2013 Moodstocks SAS
-- Copyright (c) 2014-2015 Pierre Chapuis
+- Copyright (c) 2014-2016 Pierre Chapuis
