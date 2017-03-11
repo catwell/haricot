@@ -24,7 +24,7 @@ Haricot only depends on LuaSocket.
 
 Tests require [cwtest](https://github.com/catwell/cwtest),
 a YAML parser such as [lyaml](https://github.com/gvvaughan/lyaml) or
-[the one from lubyk](http://doc.lubyk.org/yaml.html)
+[the one from lubyk](https://github.com/lubyk/yaml/)
 and a running beanstalkd instance.
 
 ## Usage
@@ -55,4 +55,4 @@ See haricot.test.lua.
 ## Copyright
 
 - Copyright (c) 2012-2013 Moodstocks SAS
-- Copyright (c) 2014-2016 Pierre Chapuis
+- Copyright (c) 2014-2017 Pierre Chapuis
