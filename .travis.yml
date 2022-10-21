@@ -24,7 +24,7 @@ install:
   - luarocks install lsocket
   - luarocks install penlight
   - luarocks install cwtest
-  - luarocks install lyaml
+  - luarocks install lua-tinyyaml
 
 before_script:
   - beanstalkd &

@@ -13,11 +13,16 @@ local tube1 = "$haricot$-test1"
 
 --- Find a YAML parser
 local yaml
-ok, yaml = pcall(require, "lyaml")
-if not ok then ok, yaml = pcall(require, "yaml") end
-if not (ok and type(yaml) == "table" and type(yaml.load) == "function") then
-    yaml = nil
-    print("warning: no YAML parser found, stats tests will be skipped")
+do
+    local tinyyaml
+    ok, tinyyaml = pcall(require, "tinyyaml")
+    if ok then yaml = { load = tinyyaml.parse } end
+    if not ok then ok, yaml = pcall(require, "lyaml") end
+    if not ok then ok, yaml = pcall(require, "yaml") end
+    if not (ok and type(yaml) == "table" and type(yaml.load) == "function") then
+        yaml = nil
+        print("warning: no YAML parser found, stats tests will be skipped")
+    end
 end
 
 local T = cwtest.new()

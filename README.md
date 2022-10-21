@@ -20,12 +20,10 @@ It returns raw YAML. Use your own decoding library if needed.
 
 ## Dependencies
 
-Haricot only depends on LuaSocket.
+Haricot only depends on LuaSocket or lsocket.
 
-Tests require [cwtest](https://github.com/catwell/cwtest),
-a YAML parser such as [lyaml](https://github.com/gvvaughan/lyaml) or
-[the one from lubyk](https://github.com/lubyk/yaml/)
-and a running beanstalkd instance.
+Tests require [cwtest](https://github.com/catwell/cwtest), a YAML parser such as
+[tinyyaml](https://luarocks.org/modules/membphis/lua-tinyyaml), [lyaml](https://github.com/gvvaughan/lyaml) or [the one from lubyk](https://github.com/lubyk/yaml/), both LuaSocket and lsocket and a running beanstalkd instance.
 
 ## Usage
 
@@ -55,4 +53,4 @@ See haricot.test.lua.
 ## Copyright
 
 - Copyright (c) 2012-2013 Moodstocks SAS
-- Copyright (c) 2014-2017 Pierre Chapuis
+- Copyright (c) 2014-2022 Pierre Chapuis
