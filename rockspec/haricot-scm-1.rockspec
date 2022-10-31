@@ -1,3 +1,5 @@
+rockspec_format = "3.0"
+
 package = "haricot"
 version = "scm-1"
 
@@ -22,4 +24,17 @@ build = {
     type = "none",
     install = { lua = { haricot = "haricot.lua" } },
     copy_directories = {},
+}
+
+test_dependencies = {
+    "cwtest",
+    "penlight",
+    "luasocket",
+    "lsocket",
+    "lua-tinyyaml",
+}
+
+test = {
+   type = "command",
+   script = "haricot.test.lua",
 }

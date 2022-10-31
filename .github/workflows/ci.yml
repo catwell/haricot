@@ -1,0 +1,38 @@
+name: CI
+on: push
+jobs:
+
+  luacheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+
+      - name: luacheck
+        uses: lunarmodules/luacheck@v1
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+
+      - name: prepare beanstalkd
+        run: |
+          sudo apt-get install -y beanstalkd
+          beanstalkd &
+
+      - name: localua
+        run: |
+          curl https://loadk.com/localua.sh -O
+          chmod +x localua.sh
+          ./localua.sh .lua
+
+      - name: install lsocket with forked rockspec (5.4 support)
+        run: |
+          ./.lua/bin/luarocks install https://raw.githubusercontent.com/catwell/lsocket/master/src/lsocket-1.4.1-1.rockspec
+
+      - name: run tests
+        run: |
+          ./.lua/bin/luarocks test
+

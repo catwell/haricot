@@ -1,6 +1,6 @@
 # Haricot
 
-[![Build Status](https://travis-ci.org/catwell/haricot.png?branch=master)](https://travis-ci.org/catwell/haricot)
+[![CI Status](github.com/catwell/haricot/actions/workflows/ci.yml/badge.svg?branch=master)
 
 ## Presentation
 
