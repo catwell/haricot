@@ -1,6 +1,6 @@
 # Haricot
 
-[![CI Status](github.com/catwell/haricot/actions/workflows/ci.yml/badge.svg?branch=master)
+![CI Status](https://github.com/catwell/haricot/actions/workflows/ci.yml/badge.svg?branch=master)
 
 ## Presentation
 
