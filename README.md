@@ -4,7 +4,7 @@
 
 ## Presentation
 
-Haricot is a [Beanstalk](http://kr.github.com/beanstalkd/) client for Lua.
+Haricot is a [Beanstalk](https://beanstalkd.github.io/) client for Lua.
 
 ## Note about YAML
 
