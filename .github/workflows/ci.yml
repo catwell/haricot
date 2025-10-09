@@ -34,9 +34,9 @@ jobs:
           chmod +x localua.sh
           ./localua.sh .lua "${{ matrix.lua-version }}"
 
-      - name: install lsocket with forked rockspec (5.4 support)
+      - name: install lsocket with local SCM rockspec (5.4 support)
         run: |
-          ./.lua/bin/luarocks install https://raw.githubusercontent.com/catwell/lsocket/master/src/lsocket-1.4.1-1.rockspec
+          ./.lua/bin/luarocks install rockspec/lsocket-scm-1.rockspec
 
       - name: run tests
         run: |
